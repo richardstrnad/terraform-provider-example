@@ -1,11 +1,14 @@
 package filr
 
 import (
-	"log"
+	"context"
+	"fmt"
 	"os"
 	"path"
 
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -38,10 +41,10 @@ func resourceFile() *schema.Resource {
 				Description: "the content of the file",
 			},
 		},
-		Create: resourceCreateItem,
-		Read:   resourceReadItem,
-		Update: resourceUpdateItem,
-		Delete: resourceDeleteItem,
+		CreateContext: resourceCreateItem,
+		ReadContext:   resourceReadItem,
+		UpdateContext: resourceUpdateItem,
+		DeleteContext: resourceDeleteItem,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -53,36 +56,50 @@ func getFilename(d *schema.ResourceData, m interface{}) string {
 	return path.Join(folder, d.Id())
 }
 
-func resourceCreateItem(d *schema.ResourceData, m interface{}) error {
+func resourceCreateItem(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	id, err := uuid.GenerateUUID()
 	if err != nil {
-		log.Print(err)
+		tflog.Error(ctx, "Couldn't generate UUID")
+		return diag.FromErr(err)
 	}
 	d.SetId(id)
 	content := d.Get("content").(string)
-	os.WriteFile(getFilename(d, m), []byte(content), 0644)
+	err = os.WriteFile(getFilename(d, m), []byte(content), 0644)
+	if err != nil {
+		tflog.Error(ctx, "Couldn't write file")
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
-func resourceReadItem(d *schema.ResourceData, m interface{}) error {
+func resourceReadItem(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	fileName := getFilename(d, m)
 	data, err := os.ReadFile(fileName)
 	if err != nil {
-		log.Print(err)
+		tflog.Error(ctx, fmt.Sprintf("Couldn't read file: %s", fileName))
+		return diag.FromErr(err)
 	}
 	d.Set("content", string(data))
 	return nil
 }
 
-func resourceUpdateItem(d *schema.ResourceData, m interface{}) error {
+func resourceUpdateItem(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	content := d.Get("content").(string)
-	os.WriteFile(getFilename(d, m), []byte(content), 0644)
+	err := os.WriteFile(getFilename(d, m), []byte(content), 0644)
+	if err != nil {
+		tflog.Error(ctx, "Couldn't write the file")
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
-func resourceDeleteItem(d *schema.ResourceData, m interface{}) error {
+func resourceDeleteItem(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	fileName := getFilename(d, m)
-	os.Remove(fileName)
+	err := os.Remove(fileName)
+	if err != nil {
+		tflog.Error(ctx, "Couldn't delete the file")
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
