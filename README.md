@@ -10,7 +10,9 @@ On my Blog I documented the process in a bit more detail, check it our `HERE: To
 You need Go & Terraform installed
 
 ### Build the binary of the Provider
-This generates the 
+This generates the binary of the Provider which is then used by Terraform.
+There is no way (as far as I'm aware of) to directly use Go code as Provider
+without compiling it.
 
 ```
 cd terraform-provider-filr
