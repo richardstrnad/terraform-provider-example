@@ -28,7 +28,7 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"filr_file_state": resourceFile(),
 		},
-		ConfigureFunc: providerConfigure,
+		ConfigureContextFunc: providerConfigure,
 	}
 }
 
@@ -41,13 +41,11 @@ func resourceFile() *schema.Resource {
 				Description: "the content of the file",
 			},
 		},
+		SchemaVersion: 1,
 		CreateContext: resourceCreateItem,
 		ReadContext:   resourceReadItem,
 		UpdateContext: resourceUpdateItem,
 		DeleteContext: resourceDeleteItem,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 	}
 }
 
@@ -103,7 +101,7 @@ func resourceDeleteItem(ctx context.Context, d *schema.ResourceData, m interface
 	return nil
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	folder := d.Get("folder").(string)
 	return File{Folder: folder}, nil
 }
